@@ -15,9 +15,9 @@ const fileParse = function() {
 			data = results["data"];
 			cleanData(data);
 			numParse(data);
+			document.getElementById('tableWrapper').style.display = 'block'
 		}
 	});
-
 };
 
 const cleanData = function(json) {
