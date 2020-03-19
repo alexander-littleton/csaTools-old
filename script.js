@@ -1,20 +1,11 @@
 let data
-const alphaNumRegex = /\b([a-zA-Z]+\d+|\d+[a-zA-Z]+)\b/;
-const justNumRegex = /\b\d+\b/;
-let alphaNumTotal = [0,0,0,0,0];
-let justNumTotal = [0,0,0,0,0];
-let total = [0,0,0,0,0];
+const alphaNumRegex = /\b([a-zA-Z]+\d+|\d+[a-zA-Z]+)\b/g;
+const justNumRegex = /\b\d+\b/g;
+let alphaNumTotal = [];
+let justNumTotal = [];
+let total = [];
 let alphaNumArray = [];
-const tableKey = {
-	'impressions' : 1,
-	'clicks' : 2,
-	'cost' : 3,
-	'conversions' : 4,
-	'conv. value' : 5,
-	'roas' : 6,
-	'avg. cpc' : 7,
-	'aov' : 8
-};
+let numArray = [];
 
 const fileParse = function() {
 	let input = document.getElementById('openFile').files[0];
@@ -26,6 +17,7 @@ const fileParse = function() {
 			numParse(data);
 		}
 	});
+
 };
 
 const cleanData = function(json) {
@@ -40,6 +32,8 @@ const numParse = function(parsedData) {
 	alphaNumTotal = [0,0,0,0,0];
 	justNumTotal = [0,0,0,0,0];
 	total = [0,0,0,0,0];
+	alphaNumArray = []
+	numArray = []
 
 	for (let i = 1; i < parsedData.length; i++) {
 		const e = parsedData[i][0];
@@ -50,19 +44,34 @@ const numParse = function(parsedData) {
 					alphaNumArray.push(term)
 				};
 			});
+			
+			let numMatchTerm = e.match(justNumRegex)
+			if (numMatchTerm) {	
+				numMatchTerm.forEach(term => {
+					if (numArray.indexOf(term) == -1) {
+						numArray.push(term)
+					};
+				});
+			};
 			for (let y = 1; y < parsedData[i].length; y++) {
 				const f = parsedData[i][y];
-				alphaNumTotal[y-1]+=parseInt(f, 10);
+				alphaNumTotal[y-1]+=parseFloat(f);
 			};
 		} else if (justNumRegex.test(e)) {
+			let numMatchTerm = e.match(justNumRegex)
+			numMatchTerm.forEach(term => {
+				if (numArray.indexOf(term) == -1) {
+					numArray.push(term)
+				};
+			});
 			for (let y = 1; y < parsedData[i].length; y++) {
 				const f = parsedData[i][y];
-				justNumTotal[y-1]+=parseInt(f, 10);
+				justNumTotal[y-1]+=parseFloat(f);
 			};
 		};
 		for (let y = 1; y < parsedData[i].length; y++) {
 			const f = parsedData[i][y];
-			total[y-1]+=parseInt(f, 10);
+			total[y-1]+=parseFloat(f);
 		};
 	};
 	console.log(alphaNumTotal);
@@ -78,11 +87,15 @@ const topTermsAnalysis = function() {
 
 const addTable = function() {
 	const table = document.getElementById('numberTable').rows
-	for (let i = 0; i < 8; i++) {
+	for (let i = 0; i < 10; i++) {
 		let t1 = table[1].cells[i+1]
 		let t2 = table[2].cells[i+1]
 		let t3 = table[3].cells[i+1]
-		if (i<5) {
+		if (i==2||i==4) {
+			t1.innerText = alphaNumTotal[i].toFixed(2);
+			t2.innerText = justNumTotal[i].toFixed(2);
+			t3.innerText = total[i].toFixed(2);
+		} else if (i<5) {
 			t1.innerText = alphaNumTotal[i];
 			t2.innerText = justNumTotal[i];
 			t3.innerText = total[i];
@@ -94,17 +107,49 @@ const addTable = function() {
 			t1.innerText = (alphaNumTotal[2]/alphaNumTotal[1]).toFixed(2);
 			t2.innerText = (justNumTotal[2]/justNumTotal[1]).toFixed(2);
 			t3.innerText = (total[2]/total[1]).toFixed(2);
-		} else {
+		} else if (i == 7){
 			t1.innerText = (alphaNumTotal[4]/alphaNumTotal[3]).toFixed(2);
 			t2.innerText = (justNumTotal[4]/justNumTotal[3]).toFixed(2);
 			t3.innerText = (total[4]/total[3]).toFixed(2);
-		};	
+		} else if (i == 8){
+			t1.innerText = ((alphaNumTotal[1]/alphaNumTotal[0])*100).toFixed(2) + '%';
+			t2.innerText = ((justNumTotal[1]/justNumTotal[0])*100).toFixed(2) + '%';
+			t3.innerText = ((total[1]/total[0])*100).toFixed(2) + '%';
+		} else {
+			t1.innerText = ((alphaNumTotal[3]/alphaNumTotal[1])*100).toFixed(2) + '%';
+			t2.innerText = ((justNumTotal[3]/justNumTotal[1])*100).toFixed(2) + '%';
+			t3.innerText = ((total[3]/total[1])*100).toFixed(2) + '%';
+		}
 	};
 };
 
 
 //possibly done debugging the above
 //next up is providing download buttons for just numbers and alphanumeric
-const fileDownload = function(params) {
-	
-}
+const download = function(e) {
+	let array
+	switch(e.currentTarget.downloadParam) {
+		case 'alphaNumeric':
+		  array = alphaNumArray
+		  break;
+		case 'numeric':
+		  array = numArray
+		  break;
+		default:
+	  }
+	console.log(array)
+	let csvContent = "data:text/csv;charset=utf-8," + array.join('\n')
+	const encodedUri = encodeURI(csvContent);
+	const link = document.createElement("a");
+	link.setAttribute("href", encodedUri);
+	link.setAttribute("download", "my_data.csv");
+	document.body.appendChild(link); // Required for FF
+
+	link.click();
+};
+
+document.getElementById('submitFile').addEventListener('click', fileParse);
+document.getElementById('alphaNumericDownload').addEventListener('click', download);
+document.getElementById('alphaNumericDownload').downloadParam = 'alphaNumeric'
+document.getElementById('numericDownload').addEventListener('click', download);
+document.getElementById('numericDownload').downloadParam = 'numeric'
